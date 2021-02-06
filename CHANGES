@@ -1,6 +1,39 @@
+[1.9.15]
+- Scene2d.ui: Added new ParticleEffectActor to use particle effects on Stage
+
+[1.9.14]
+- [BREAKING CHANGE] iOS: IOSUIViewController has been moved to its own separate class 
+- [BREAKING CHANGE] API Change: G3D AnimationDesc#update now returns -1 (instead of 0) if animation not finished.
+- [BREAKING CHANGE] InputEventQueue no longer implements InputProcessor, pass InputProcessor to #drain.
+- [BREAKING CHANGE] HeadlessApplicationConfiguration#renderInterval was changed to #updatesPerSecond
+- API addition: Added Pixmap#setPixels(ByteBuffer).
+- API change: ScreenUtils#getFrameBufferPixmap is deprecated in favor to new method Pixmap#createFromFrameBuffer.
+- API Addition: Added overridable createFiles() methods to backend application classes to allow initializing custom module implementations.
+- API Addition: Add a Graphics#setForegroundFPS() method.
+
+[1.9.13]
+- [BREAKING CHANGE] Fixed keycode representations for ESCAPE, END, INSERT and F1 to F12. These keys are working on Android now, but if you hardcoded or saved the values you might need to migrate.
+- [BREAKING CHANGE] TextureAtlas.AtlasRegion and Region splits and pads fields have been removed and moved to name/value pairs, use #findValue("split") and #findValue("pad") instead.
+- iOS: Update to MobiVM 2.3.12
+- GWT: Key codes set with Gdx.input.setCatchKey prevent default browser behaviour
+- Added Scaling.contain mode: Scales the source to fit the target while keeping the same aspect ratio, but the source is not scaled at all if smaller in both directions.
+- API Addition: Added hasContents() to Clipboard interface, to reduce clipboard notifications on iOS 14
+- TOOLS Features: Blending mode can be changed in Flame particle 3D editor.
+- Input Keycodes added: CAPS_LOCK, PAUSE (aka Break), PRINT_SCREEN, SCROLL_LOCK, F13 to F24, NUMPAD_DIVIDE, NUMPAD_MULTIPLY, NUMPAD_SUBTRACT, NUMPAD_ADD, NUMPAD_DOT, NUMPAD_COMMA, NUMPAD_ENTER, NUMPAD_EQUALS, NUMPAD_LEFT_PAREN, NUMPAD_RIGHT_PAREN, NUM_LOCK.
+  Following changes might be done depending on platform: Keys.STAR to Keys.NUMPAD_MULTIPLY, Keys.SLASH to Keys.NUMPAD_DIVIDE, Keys.NUM to Keys.NUM_LOCK, Keys.COMMA to Keys.NUMPAD_COMMA, Keys.PERIOD to Keys.NUMPAD_DOT, Keys.COMMA to Keys.NUMPAD_COMMA, Keys.ENTER to Keys.NUMPAD_ENTER, Keys.PLUS to Keys.NUMPAD_ADD, Keys.MINUS to Keys.NUMPAD_SUBTRACT
+- Added a QuadFloatTree class.
+- Desktop: Cubemap Seamless feature is now enabled by default when supported, can be changed via backend specific methods, see supportsCubeMapSeamless and enableCubeMapSeamless in both LwjglGraphics and Lwjgl3Graphics.
+- API Addition: TextureAtlas reads arbitrary name/value pairs for each region. See #6316.
+- TexturePacker writes using a new format when legacyOutput is false (default is true). TextureAtlas can read both old and new formats. See #6316.
+
 [1.9.12]
+- [BREAKING CHANGE] iOS: Changed how Retina/hdpi handled on iOS. See #3709.
+- [BREAKING CHANGE] API Change: InputProcessor scrolled method now receives scroll amount for X and Y. Changed type to float to support devices which report fractional scroll amounts. Updated InputEvent in scene2d accordingly: added scrollAmountX, scrollAmountY attributes and corresponding setters and getters. See #6154.
+- [BREAKING CHANGE] API Change: Vector2 angleRad(Vector2) now correctly returns counter-clockwise angles. See #5428
+- [BREAKING CHANGE] Android: getDeltaTime() now returns the raw delta time instead of a smoothed one. See #6228.
+- Fixed vertices returned by Decal.getVertices() not being updated
 - Fixes Issue #5048. The function Intersector.overlapConvexPolygons now should return the right minimum translation vector values.
-- Update to MobiVM 2.3.10
+- Update to MobiVM 2.3.11
 - API Change: Removed Pool constructor with preFill parameter in favor of using Pool#fill() method. See #6117
 - API Addition: Slider can now be configured to only trigger on certain mouse button clicks (Slider#setButton(int)).
 - Fixed GlyphLayout not laying out correctly with color markup.
@@ -12,7 +45,7 @@
 - Gdx.files.external on Android now uses app external storage - see wiki article File handling for more information
 - Improved text, cursor and selection rendering in TextArea.
 - API Addition: Added setProgrammaticChangeEvents, updateVisualValue, round methods to ProgressBar/Slider.
-- Keyboard events working on RoboVM on iOS 13.5 and up, uses same API as on other platforms
+- iOS: Keyboard events working on RoboVM on iOS 13.5 and up, uses same API as on other platforms
 - API Addition: Added AndroidLiveWallpaper.notifyColorsChanged() to communicate visually significant colors back to the wallpaper engine.
 - API Change: AssetManager invokes the loaded callback when an asset is unloaded from the load queue if the asset is already loaded.
 - GWT: changed audio backend to WebAudio API. Now working on mobiles, pitch implemented. Configuration change: preferFlash removed. When updating existing projects, you can remove the soundmanager js files from your webapp folder and the references to it from index.html
@@ -30,7 +63,6 @@
 - API Change: Utility classes are now final and have a private constructor to prevent instantiation.
 - API Change: ScrollPane now supports all combinations of scrollBarsOnTop and fadeScrollBars.
 - API Addition: Added new methods with a "deg" suffix in the method's name for all Vector2 degrees-based methods and deprecated the old ones.
-- API Change: Vector2 angleRad(Vector2) now correctly return counter-clockwise angles.
 - API Addition: Added Slider#setVisualPercent.
 - API Change: Enabling fullscreen mode on the lwjgl3 backend now automatically sets the vsync setting again.
 - API Addition: Added put(key, value, defaultValue) for maps with primitive keys, so the old value can be returned.
@@ -46,6 +78,11 @@
 - API Change: Table#round uses ceil/floor and is applied during layout, rather than afterward.
 - Fixed blurry NinePatch rendering when using a single center region.
 - API Change: Upon changing the window size with the lwjgl3 backend, the window is centered on the monitor.
+- Fixed DepthShaderProvider no longer creates one DepthShader per bones count. Now it creates only one skinned variant and one non-skinned variant based on DepthShader/Config numBones.
+- API Addition: Added Intersector#intersectPlanes to calculate the point intersected by three planes, see https://github.com/libgdx/libgdx/pull/6217
+- API Addition: Added alternative Android Audio implementation for performant sound. See https://github.com/libgdx/libgdx/pull/6243.
+- API Addition: Expose SpriteBatch and PolygonSpriteBatch setupMatrices() as protected.
+- API Addition: New parameter OnscreenKeyboardType for Input.setOnscreenKeyboardVisible and Input.getTextInput 
 
 [1.9.11]
 - Update to MobiVM 2.3.8

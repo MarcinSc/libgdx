@@ -16,8 +16,8 @@
 
 package com.badlogic.gdx.backends.iosrobovm;
 
+import com.badlogic.gdx.AbstractInput;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.backends.iosrobovm.custom.UIAcceleration;
 import com.badlogic.gdx.backends.iosrobovm.custom.UIAccelerometer;
@@ -25,15 +25,16 @@ import com.badlogic.gdx.backends.iosrobovm.custom.UIAccelerometerDelegate;
 import com.badlogic.gdx.backends.iosrobovm.custom.UIAccelerometerDelegateAdapter;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-import com.badlogic.gdx.utils.IntSet;
 import com.badlogic.gdx.utils.Pool;
 
 import org.robovm.apple.audiotoolbox.AudioServices;
 import org.robovm.apple.coregraphics.CGPoint;
 import org.robovm.apple.coregraphics.CGRect;
+import org.robovm.apple.foundation.Foundation;
 import org.robovm.apple.foundation.NSExtensions;
 import org.robovm.apple.foundation.NSObject;
 import org.robovm.apple.foundation.NSRange;
+import org.robovm.apple.gamecontroller.GCKeyboard;
 import org.robovm.apple.uikit.UIAlertAction;
 import org.robovm.apple.uikit.UIAlertActionStyle;
 import org.robovm.apple.uikit.UIAlertController;
@@ -60,7 +61,7 @@ import org.robovm.rt.bro.NativeObject;
 import org.robovm.rt.bro.annotation.MachineSizedUInt;
 import org.robovm.rt.bro.annotation.Pointer;
 
-public class DefaultIOSInput implements IOSInput {
+public class DefaultIOSInput extends AbstractInput implements IOSInput {
 	static final int MAX_TOUCHES = 20;
 	private static final int POINTER_NOT_FOUND = -1;
 
@@ -127,12 +128,7 @@ public class DefaultIOSInput implements IOSInput {
 	boolean keyboardCloseOnReturn;
 	boolean softkeyboardActive = false;
 
-	private IntSet keysToCatch = new IntSet();
-	private boolean keyJustPressed = false;
-	private int keyCount = 0;
 	private boolean hadHardwareKeyEvent = false;
-	private final boolean[] keys = new boolean[Keys.MAX_KEYCODE + 1];
-	private final boolean[] justPressedKeys = new boolean[Keys.MAX_KEYCODE + 1];
 
 	public DefaultIOSInput (IOSApplication app) {
 		this.app = app;
@@ -383,30 +379,13 @@ public class DefaultIOSInput implements IOSInput {
 	}
 
 	@Override
-	public boolean isKeyPressed (int key) {
-		if (key == Input.Keys.ANY_KEY) {
-			return keyCount > 0;
-		}
-		if (key < 0 || key > Keys.MAX_KEYCODE) {
-			return false;
-		}
-		return keys[key];
-	}
-
-	@Override
-	public boolean isKeyJustPressed (int key) {
-		if (key == Input.Keys.ANY_KEY) {
-			return keyJustPressed;
-		}
-		if (key < 0 || key > Keys.MAX_KEYCODE) {
-			return false;
-		}
-		return justPressedKeys[key];
-	}
-
-	@Override
 	public void getTextInput(TextInputListener listener, String title, String text, String hint) {
-		UIAlertController uiAlertController = buildUIAlertController(listener, title, text, hint);
+		getTextInput(listener, title, text, hint, OnscreenKeyboardType.Default);
+	}
+
+	@Override
+	public void getTextInput(TextInputListener listener, String title, String text, String hint, OnscreenKeyboardType type) {
+		UIAlertController uiAlertController = buildUIAlertController(listener, title, text, hint, type);
 		app.getUIViewController().presentViewController(uiAlertController, true, null);
 	}	
 
@@ -459,16 +438,47 @@ public class DefaultIOSInput implements IOSInput {
 
 	@Override
 	public void setOnscreenKeyboardVisible (boolean visible) {
+		setOnscreenKeyboardVisible(visible, OnscreenKeyboardType.Default);
+	}
+
+	@Override
+	public void setOnscreenKeyboardVisible (boolean visible, OnscreenKeyboardType type) {
 		if (textfield == null) createDefaultTextField();
 		softkeyboardActive = visible;
 		if (visible) {
+			UIKeyboardType preferredInputType;
+			if(type == null) type = OnscreenKeyboardType.Default;
+			textfield.setKeyboardType(getIosInputType(type));
 			textfield.becomeFirstResponder();
 			textfield.setDelegate(textDelegate);
 		} else {
 			textfield.resignFirstResponder();
 		}
 	}
-	
+
+	protected UIKeyboardType getIosInputType(OnscreenKeyboardType type) {
+		UIKeyboardType preferredInputType;
+		switch (type) {
+			case NumberPad:
+				preferredInputType = UIKeyboardType.NumberPad;
+				break;
+			case PhonePad:
+				preferredInputType = UIKeyboardType.PhonePad;
+				break;
+			case Email:
+				preferredInputType = UIKeyboardType.EmailAddress;
+				break;
+			case URI:
+				preferredInputType = UIKeyboardType.URL;
+				break;
+			case Password: //no equivalent in UIKeyboardType?
+			default:
+				preferredInputType = UIKeyboardType.Default;
+				break;
+		}
+		return preferredInputType;
+	}
+
 	/**
 	 * Set the keyboard to close when the UITextField return key is pressed
 	 * @param shouldClose Whether or not the keyboard should clsoe on return key press
@@ -501,14 +511,20 @@ public class DefaultIOSInput implements IOSInput {
 	 * @param listener Text input listener
 	 * @param title Dialog title
 	 * @param text Text for text field
+	 * @param type
 	 * @return UIAlertController */
-	private UIAlertController buildUIAlertController(final TextInputListener listener, String title, final String text, final String placeholder) {
+	private UIAlertController buildUIAlertController(final TextInputListener listener, String title, final String text, final String placeholder, final OnscreenKeyboardType type) {
 		final UIAlertController uiAlertController = new UIAlertController(title, text, UIAlertControllerStyle.Alert);
 		uiAlertController.addTextField(new VoidBlock1<UITextField>() {
 			@Override
 			public void invoke(UITextField uiTextField) {
 				uiTextField.setPlaceholder(placeholder);
 				uiTextField.setText(text);
+				uiTextField.setKeyboardType(getIosInputType(type));
+				if (type == OnscreenKeyboardType.Password) {
+					uiTextField.setSecureTextEntry(true);
+				}
+
 			}
 		});
 		uiAlertController.addAction(new UIAlertAction("Ok", UIAlertActionStyle.Default, new VoidBlock1<UIAlertAction>() {
@@ -550,40 +566,6 @@ public class DefaultIOSInput implements IOSInput {
 	}
 
 	@Override
-	public void setCatchBackKey (boolean catchBack) {
-		setCatchKey(Keys.BACK, catchBack);
-	}
-
-	@Override
-	public boolean isCatchBackKey() {
-		return keysToCatch.contains(Keys.BACK);
-	}
-
-	@Override
-	public void setCatchMenuKey (boolean catchMenu) {
-		setCatchKey(Keys.MENU, catchMenu);
-	}
-
-	@Override
-	public boolean isCatchMenuKey () {
-		return keysToCatch.contains(Keys.MENU);
-	}
-
-	@Override
-	public void setCatchKey (int keycode, boolean catchKey) {
-		if (!catchKey) {
-			keysToCatch.remove(keycode);
-		} else if (catchKey) {
-			keysToCatch.add(keycode);
-		}
-	}
-
-	@Override
-	public boolean isCatchKey (int keycode) {
-		return keysToCatch.contains(keycode);
-	}
-
-	@Override
 	public void setInputProcessor (InputProcessor processor) {
 		this.inputProcessor = processor;
 	}
@@ -601,7 +583,8 @@ public class DefaultIOSInput implements IOSInput {
 		if (peripheral == Peripheral.Compass) return compassSupported;
 		if (peripheral == Peripheral.OnscreenKeyboard) return true;
 		if (peripheral == Peripheral.Pressure) return pressureSupported;
-		if (peripheral == Peripheral.HardwareKeyboard) return hadHardwareKeyEvent;
+		if (peripheral == Peripheral.HardwareKeyboard)
+			return Foundation.getMajorSystemVersion() >= 14 ? GCKeyboard.getCoalescedKeyboard() != null : hadHardwareKeyEvent;
 		return false;
 	}
 
@@ -657,7 +640,7 @@ public class DefaultIOSInput implements IOSInput {
 			return false;
 		}
 
-		int keyCode = getGdxKeyCode(key.getKeyCode());
+		int keyCode = getGdxKeyCode(key);
 
 		if (keyCode != Keys.UNKNOWN)
 			synchronized (keyEvents) {
@@ -699,14 +682,14 @@ public class DefaultIOSInput implements IOSInput {
 						keyEvents.add(event);
 					}
 
-					if (keys[keyCode]) {
-						keyCount--;
-						keys[keyCode] = false;
+					if (pressedKeys[keyCode]) {
+						pressedKeyCount--;
+						pressedKeys[keyCode] = false;
 					}
 				} else {
-					if (!keys[event.keyCode]) {
-						keyCount++;
-						keys[event.keyCode] = true;
+					if (!pressedKeys[event.keyCode]) {
+						pressedKeyCount++;
+						pressedKeys[event.keyCode] = true;
 					}
 				}
 
@@ -808,16 +791,16 @@ public class DefaultIOSInput implements IOSInput {
 	private void toTouchEvents (long touches) {
 		long array = NSSetExtensions.allObjects(touches);
 		int length = (int)NSArrayExtensions.count(array);
+		final IOSScreenBounds screenBounds = app.getScreenBounds();
 		for (int i = 0; i < length; i++) {
 			long touchHandle = NSArrayExtensions.objectAtIndex$(array, i);
 			UITouch touch = UI_TOUCH_WRAPPER.wrap(touchHandle);
 			final int locX, locY;
 			// Get and map the location to our drawing space
 			{
-				CGPoint loc = touch.getLocationInView(touch.getWindow());
-				final CGRect bounds = app.getCachedBounds();
-				locX = (int)(loc.getX() * app.displayScaleFactor - bounds.getMinX());
-				locY = (int)(loc.getY() * app.displayScaleFactor - bounds.getMinY());
+				CGPoint loc = touch.getLocationInView(app.graphics.view);
+				locX = (int)(loc.getX() - screenBounds.x);
+				locY = (int)(loc.getY() - screenBounds.y);
 				// app.debug("IOSInput","pos= "+loc+"  bounds= "+bounds+" x= "+locX+" locY= "+locY);
 			}
 
@@ -915,7 +898,14 @@ public class DefaultIOSInput implements IOSInput {
 		return 0;
 	}
 
-	protected int getGdxKeyCode(UIKeyboardHIDUsage keyCode) {
+	protected int getGdxKeyCode(UIKey key) {
+		UIKeyboardHIDUsage keyCode;
+		try {
+			keyCode = key.getKeyCode();
+		} catch (IllegalArgumentException e) {
+			return Keys.UNKNOWN;
+		}
+
 		switch (keyCode) {
 			case KeyboardA:
 				return Keys.A;
@@ -1047,8 +1037,32 @@ public class DefaultIOSInput implements IOSInput {
 				return Keys.F11;
 			case KeyboardF12:
 				return Keys.F12;
+			case KeyboardF13:
+				return Keys.F13;
+			case KeyboardF14:
+				return Keys.F14;
+			case KeyboardF15:
+				return Keys.F15;
+			case KeyboardF16:
+				return Keys.F16;
+			case KeyboardF17:
+				return Keys.F17;
+			case KeyboardF18:
+				return Keys.F18;
+			case KeyboardF19:
+				return Keys.F19;
+			case KeyboardF20:
+				return Keys.F20;
+			case KeyboardF21:
+				return Keys.F21;
+			case KeyboardF22:
+				return Keys.F22;
+			case KeyboardF23:
+				return Keys.F23;
+			case KeyboardF24:
+				return Keys.F24;
 			case KeyboardPause:
-				return Keys.MEDIA_PLAY_PAUSE;
+				return Keys.PAUSE;
 			case KeyboardInsert:
 				return Keys.INSERT;
 			case KeyboardHome:
@@ -1056,7 +1070,7 @@ public class DefaultIOSInput implements IOSInput {
 			case KeyboardPageUp:
 				return Keys.PAGE_UP;
 			case KeyboardDeleteForward:
-				return Keys.DEL;
+				return Keys.FORWARD_DEL;
 			case KeyboardEnd:
 				return Keys.END;
 			case KeyboardPageDown:
@@ -1070,17 +1084,17 @@ public class DefaultIOSInput implements IOSInput {
 			case KeyboardUpArrow:
 				return Keys.UP;
 			case KeypadNumLock:
-				return Keys.NUM;
+				return Keys.NUM_LOCK;
 			case KeypadSlash:
-				return Keys.SLASH;
+				return Keys.NUMPAD_DIVIDE;
 			case KeypadAsterisk:
-				return Keys.STAR;
+				return Keys.NUMPAD_MULTIPLY;
 			case KeypadHyphen:
-				return Keys.MINUS;
+				return Keys.NUMPAD_SUBTRACT;
 			case KeypadPlus:
-				return Keys.PLUS;
+				return Keys.NUMPAD_ADD;
 			case KeypadEnter:
-				return Keys.ENTER;
+				return Keys.NUMPAD_ENTER;
 			case Keypad1:
 				return Keys.NUM_1;
 			case Keypad2:
@@ -1102,7 +1116,7 @@ public class DefaultIOSInput implements IOSInput {
 			case Keypad0:
 				return Keys.NUM_0;
 			case KeypadPeriod:
-				return Keys.PERIOD;
+				return Keys.NUMPAD_DOT;
 			case KeyboardNonUSBackslash:
 				return Keys.BACKSLASH;
 			case KeyboardApplication:
@@ -1110,7 +1124,8 @@ public class DefaultIOSInput implements IOSInput {
 			case KeyboardPower:
 				return Keys.POWER;
 			case KeypadEqualSign:
-				return Keys.EQUALS;
+			case KeypadEqualSignAS400:
+				return Keys.NUMPAD_EQUALS;
 			case KeyboardHelp:
 				return Keys.F1;
 			case KeyboardMenu:
@@ -1128,9 +1143,7 @@ public class DefaultIOSInput implements IOSInput {
 			case KeyboardVolumeDown:
 				return Keys.VOLUME_DOWN;
 			case KeypadComma:
-				return Keys.COMMA;
-			case KeypadEqualSignAS400:
-				return Keys.EQUALS;
+				return Keys.NUMPAD_COMMA;
 			case KeyboardAlternateErase:
 				return Keys.DEL;
 			case KeyboardCancel:
@@ -1151,6 +1164,12 @@ public class DefaultIOSInput implements IOSInput {
 				return Keys.SHIFT_RIGHT;
 			case KeyboardRightAlt:
 				return Keys.ALT_RIGHT;
+			case KeyboardCapsLock:
+				return Keys.CAPS_LOCK;
+			case KeyboardPrintScreen:
+				return Keys.PRINT_SCREEN;
+			case KeyboardScrollLock:
+				return Keys.SCROLL_LOCK;
 			default:
 				return Keys.UNKNOWN;
 		}

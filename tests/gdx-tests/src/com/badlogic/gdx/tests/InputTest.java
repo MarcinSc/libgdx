@@ -17,7 +17,6 @@
 package com.badlogic.gdx.tests;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
@@ -109,8 +108,8 @@ public class InputTest extends GdxTest implements InputProcessor {
 	}
 
 	@Override
-	public boolean scrolled (int amount) {
-		Gdx.app.log("Input Test", "scrolled: " + amount);
+	public boolean scrolled (float amountX, float amountY) {
+		Gdx.app.log("Input Test", "scrolled: " + amountY);
 		return false;
 	}
 

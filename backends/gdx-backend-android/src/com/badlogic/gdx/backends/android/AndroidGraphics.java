@@ -25,6 +25,7 @@ import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.View;
 import android.view.WindowManager.LayoutParams;
+import com.badlogic.gdx.AbstractGraphics;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
@@ -35,7 +36,6 @@ import com.badlogic.gdx.graphics.Cursor.SystemCursor;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.GLVersion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.math.WindowedMean;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.SnapshotArray;
 
@@ -48,7 +48,7 @@ import javax.microedition.khronos.opengles.GL10;
 /** An implementation of {@link Graphics} for Android.
  *
  * @author mzechner */
-public class AndroidGraphics implements Graphics, Renderer {
+public class AndroidGraphics extends AbstractGraphics implements Renderer {
 
 	private static final String LOG_TAG = "AndroidGraphics";
 
@@ -76,7 +76,6 @@ public class AndroidGraphics implements Graphics, Renderer {
 	protected long frameId = -1;
 	protected int frames = 0;
 	protected int fps;
-	protected WindowedMean mean = new WindowedMean(5);
 
 	volatile boolean created = false;
 	volatile boolean running = false;
@@ -91,7 +90,7 @@ public class AndroidGraphics implements Graphics, Renderer {
 	private float density = 1;
 
 	protected final AndroidApplicationConfiguration config;
-	private BufferFormat bufferFormat = new BufferFormat(5, 6, 5, 0, 16, 0, 0, false);
+	private BufferFormat bufferFormat = new BufferFormat(8, 8, 8, 0, 16, 0, 0, false);
 	private boolean isContinuous = true;
 
 	public AndroidGraphics (AndroidApplicationBase application, AndroidApplicationConfiguration config,
@@ -304,7 +303,6 @@ public class AndroidGraphics implements Graphics, Renderer {
 		Display display = app.getWindowManager().getDefaultDisplay();
 		this.width = display.getWidth();
 		this.height = display.getHeight();
-		this.mean = new WindowedMean(5);
 		this.lastFrameTime = System.nanoTime();
 
 		gl.glViewport(0, 0, this.width, this.height);
@@ -406,15 +404,14 @@ public class AndroidGraphics implements Graphics, Renderer {
 	@Override
 	public void onDrawFrame (javax.microedition.khronos.opengles.GL10 gl) {
 		long time = System.nanoTime();
-		deltaTime = (time - lastFrameTime) / 1000000000.0f;
-		lastFrameTime = time;
-
 		// After pause deltaTime can have somewhat huge value that destabilizes the mean, so let's cut it off
 		if (!resume) {
-			mean.addValue(deltaTime);
+			deltaTime = (time - lastFrameTime) / 1000000000.0f;
 		} else {
 			deltaTime = 0;
 		}
+		lastFrameTime = time;
+
 
 		boolean lrunning = false;
 		boolean lpause = false;
@@ -514,11 +511,6 @@ public class AndroidGraphics implements Graphics, Renderer {
 	/** {@inheritDoc} */
 	@Override
 	public float getDeltaTime () {
-		return mean.getMean() == 0 ? deltaTime : mean.getMean();
-	}
-
-	@Override
-	public float getRawDeltaTime () {
 		return deltaTime;
 	}
 
@@ -708,6 +700,10 @@ public class AndroidGraphics implements Graphics, Renderer {
 	}
 
 	@Override
+	public void setForegroundFPS (int fps) {
+	}
+
+	@Override
 	public boolean supportsExtension (String extension) {
 		if (extensions == null) extensions = Gdx.gl.glGetString(GL10.GL_EXTENSIONS);
 		return extensions.contains(extension);
@@ -720,7 +716,6 @@ public class AndroidGraphics implements Graphics, Renderer {
 			this.isContinuous = enforceContinuousRendering || isContinuous;
 			int renderMode = this.isContinuous ? GLSurfaceView.RENDERMODE_CONTINUOUSLY : GLSurfaceView.RENDERMODE_WHEN_DIRTY;
 			view.setRenderMode(renderMode);
-			mean.clear();
 		}
 	}
 

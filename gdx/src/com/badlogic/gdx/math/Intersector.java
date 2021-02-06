@@ -92,8 +92,8 @@ public final class Intersector {
 		return true;
 	}
 
-	/** Determines on which side of the given line the point is. Returns -1 if the point is on the left side of the line, 0 if the
-	 * point is on the line and 1 if the point is on the right side of the line. Left and right are relative to the lines direction
+	/** Determines on which side of the given line the point is. Returns 1 if the point is on the left side of the line, 0 if the
+	 * point is on the line and -1 if the point is on the right side of the line. Left and right are relative to the lines direction
 	 * which is linePoint1 to linePoint2. */
 	public static int pointLineSide (Vector2 linePoint1, Vector2 linePoint2, Vector2 point) {
 		return (int)Math.signum(
@@ -405,6 +405,27 @@ public final class Intersector {
 		}
 
 		return -1;
+	}
+
+	/** Returns true if the three {@link Plane planes} intersect, setting the point of intersection in {@code intersection}, if any.
+	 * @param intersection The point where the three planes intersect */
+	public static boolean intersectPlanes (Plane a, Plane b, Plane c, Vector3 intersection) {
+		tmp1.set(a.normal).crs(b.normal);
+		tmp2.set(b.normal).crs(c.normal);
+		tmp3.set(c.normal).crs(a.normal);
+
+		float f = -a.normal.dot(tmp2);
+		if (Math.abs(f) < MathUtils.FLOAT_ROUNDING_ERROR) {
+			return false;
+		}
+
+		tmp1.scl(c.d);
+		tmp2.scl(a.d);
+		tmp3.scl(b.d);
+
+		intersection.set(tmp1.x + tmp2.x + tmp3.x, tmp1.y + tmp2.y + tmp3.y, tmp1.z + tmp2.z + tmp3.z);
+		intersection.scl(1 / f);
+		return true;
 	}
 
 	private static final Plane p = new Plane(new Vector3(), 0);

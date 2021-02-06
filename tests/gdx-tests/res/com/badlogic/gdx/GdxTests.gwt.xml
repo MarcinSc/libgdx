@@ -28,6 +28,7 @@
 		<exclude name="**/NetAPITest.java"/> <!-- abuses FileHandle() -->
 		<exclude name="**/NoncontinuousRenderingTest.java"/> <!-- Noncontinuous rendering not supported -->
 		<exclude name="**/PingPongSocketExample.java"/> <!-- networking -->
+		<exclude name="**/PixelBufferObjectTest.java"/> <!-- threading -->
 		<exclude name="**/PixmapPackerIOTest.java"/> <!-- gdx-tools -->
 		<exclude name="**/PngTest.java"/> <!-- Not compatible -->
 		<exclude name="**/RemoteTest.java"/> <!-- networking -->
@@ -42,7 +43,9 @@
 		<exclude name="**/VorbisTest.java"/> <!-- native -->
 		<exclude name="**/WavTest.java"/> <!-- naive -->
 		<exclude name="**/voxel/*.java"/> <!-- PerlinNoiseGenerator uses a method not in the emulated version of Buffer -->
+		<exclude name="utils/CommandLineOptions.java"/>
 	</source>
 	<extend-configuration-property name="gdx.reflect.include" value="com.badlogic.gdx.tests.AnnotationTest" />
 	<extend-configuration-property name="gdx.reflect.include" value="com.badlogic.gdx.tests.ReflectionCorrectnessTest" />
+	<extend-configuration-property name="gdx.reflect.include" value="com.badlogic.gdx.tests.utils.GdxTestConfig" />
 </module>
