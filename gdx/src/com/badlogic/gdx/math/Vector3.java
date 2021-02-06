@@ -152,7 +152,10 @@ public class Vector3 implements Serializable, Vector<Vector3> {
 		return this.set(this.x + x, this.y + y, this.z + z);
 	}
 
-	@Override
+	/** Adds the given value to all three components of the vector.
+	 *
+	 * @param values The value
+	 * @return This vector for chaining */
 	public Vector3 add (float values) {
 		return this.set(this.x + values, this.y + values, this.z + values);
 	}
@@ -172,7 +175,10 @@ public class Vector3 implements Serializable, Vector<Vector3> {
 		return this.set(this.x - x, this.y - y, this.z - z);
 	}
 
-	@Override
+	/** Subtracts the given value from all components of this vector
+	 *
+	 * @param value The value
+	 * @return This vector for chaining */
 	public Vector3 sub (float value) {
 		return this.set(this.x - value, this.y - value, this.z - value);
 	}
