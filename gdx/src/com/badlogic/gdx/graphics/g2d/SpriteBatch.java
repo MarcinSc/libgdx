@@ -36,7 +36,13 @@ import java.nio.Buffer;
  * @author mzechner
  * @author Nathan Sweet */
 public class SpriteBatch implements Batch {
+	/**
+	 * This is a maximum number of sprites that can be drawn in one draw call. Indices in a draw call are using unsigned
+	 * short, therefore at most there can be 2^16-1 vertices. Since each sprite uses 4 vertices, there can be at most
+	 * 2^14-1 sprites, so - 16383.
+	 */
 	public static final int MAX_SPRITE_COUNT = 16383;
+
 	/** @deprecated Do not use, this field is for testing only and is likely to be removed. Sets the {@link VertexDataType} to be
 	 *             used when gles 3 is not available, defaults to {@link VertexDataType#VertexArray}. */
 	@Deprecated public static VertexDataType defaultVertexDataType = VertexDataType.VertexArray;
